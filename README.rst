@@ -45,14 +45,14 @@ Shortcut
 --------
 
 Manual usage is too board. So I make shortcut to use easily.
-You just replace ``aiohttp.ClientSession`` to ``aiohttp_doh.ClientSession``.
+You just replace ``aiohttp.ClientSession`` to ``aiohttp_doh.DNSOverHTTPSClientSession``.
 
 .. code-block:: python3
 
-   from aiohttp_doh import ClientSession
+   from aiohttp_doh import DNSOverHTTPSClientSession
 
    async def main():
-       async with ClientSession() as session:
+       async with DNSOverHTTPSClientSession() as session:
            async with session.get('http://example.com') as resp:
                data = await resp.text()
 
@@ -68,7 +68,7 @@ endpoints
   List of str. DNS over HTTPS endpoints.
   Shortcut use `'https://dns.google.com/resolve'`
   and `'https://cloudflare-dns.com/dns-query'` both in default.
-  You can also use others instead.
+  You can also use others instead, make sure DNS endpoints support JSON response format (application/dns-json)
 
 json_loads
   Function for loads json. default is Python builtin json module's one.
