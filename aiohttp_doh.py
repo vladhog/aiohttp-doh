@@ -9,7 +9,7 @@ from aiohttp.client import ClientSession as CS
 from aiohttp.connector import TCPConnector
 from aiohttp.resolver import DefaultResolver
 
-__all__ = 'ClientSession', 'DNSOverHTTPSResolver', 'RecordType'
+__all__ = 'DNSOverHTTPSClientSession', 'DNSOverHTTPSResolver', 'RecordType'
 
 
 class RecordType(enum.Enum):
@@ -22,13 +22,7 @@ class RecordType(enum.Enum):
 class DNSOverHTTPSResolver(AbstractResolver):
     """DNS over HTTPS Resolver"""
 
-    def __init__(
-        self,
-        *,
-        endpoints: List[str],
-        json_loads=json.loads,
-        resolver_class=None,
-    ) -> None:
+    def __init__(self, *, endpoints: List[str], json_loads=json.loads, resolver_class=None) -> None:
         self.endpoints = endpoints
         self.json_loads = json_loads
         if resolver_class is None:
@@ -42,15 +36,14 @@ class DNSOverHTTPSResolver(AbstractResolver):
             record_type = RecordType.A
 
         params = {
-            'ct': 'application/dns-json',
             'name': host,
             'type': record_type.name,
         }
 
         resolver = self.resolveer_class()
         connector = TCPConnector(resolver=resolver)
-    
-        async with CS(connector=connector) as session:
+
+        async with CS(connector=connector, headers={"accept": "application/dns-json"}) as session:
             async with session.get(endpoint, params=params) as resp:
                 data = self.json_loads(await resp.text())
 
@@ -79,19 +72,15 @@ class DNSOverHTTPSResolver(AbstractResolver):
             self._resolve(endpoint, host, port, family)
             for endpoint in self.endpoints
         ]
-        done, pending = await asyncio.wait(
-            tasks,
-            return_when=asyncio.FIRST_COMPLETED,
-        )
-        for p in pending:
-            p.cancel()
-        return list(done)[0].result()
+        done = await asyncio.gather(*tasks)
+        return done[0]
 
     async def close(self):
         pass
 
 
-def ClientSession(*args, **kwargs) -> CS:  # noqa
+# noinspection PyTypeChecker
+def DNSOverHTTPSClientSession(*args, **kwargs) -> CS:  # noqa
     """Shortcut of aiohttp.ClientSession and DNSOverHTTPSResolver"""
 
     endpoints = kwargs.pop(
